@@ -11,6 +11,7 @@ end
 def run2(input)
 end
 
-input = fetch_input
-puts run(input)
-puts run2(input)
+input = fetch_input.split("\n")
+
+puts "Part One: #{run(input)}"
+puts "Part Two: #{run2(input)}"
