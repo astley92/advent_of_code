@@ -114,7 +114,71 @@
 #
 # Find all of the directories with a total size of at most 100000. What is the
 # sum of the total sizes of those directories?
-require "byebug"
+
+class Directory
+  SEPERATOR = "/"
+  @@dirs = []
+  attr_reader :name
+
+  def self.find_or_create(name)
+    existing_dir = @@dirs.detect { _1.name == name }
+    return existing_dir unless existing_dir.nil?
+
+    new(name).tap { @@dirs << _1 }
+  end
+
+  def self.all
+    @@dirs
+  end
+
+  def self.home_dir
+    find_or_create("home")
+  end
+
+  def self.clear!
+    @@dirs = []
+  end
+
+  def add_content(content_string)
+    if content_string.start_with?("dir")
+      add_dir(content_string)
+    else
+      add_file(content_string)
+    end
+  end
+
+  def total_size
+    return files.sum if dirs.empty?
+
+    files.sum + @dirs.map { _1.total_size }.sum
+  end
+
+  def parent_dir
+    self.class.find_or_create(name.split(SEPERATOR)[..-2].join(SEPERATOR))
+  end
+
+  def move_into(subdir_name)
+    self.class.find_or_create(name + SEPERATOR + subdir_name)
+  end
+
+  private
+
+  attr_accessor :files, :dirs
+  def initialize(name)
+    @name = name
+    @files = []
+    @dirs = []
+  end
+
+  def add_dir(arg_string)
+    dirs << self.class.find_or_create(name + SEPERATOR + arg_string.split(" ")[1])
+  end
+
+  def add_file(arg_string)
+    files << arg_string.split(" ")[0].to_i
+  end
+end
+
 class Solution
   attr_accessor :input
   def initialize(input)
@@ -135,110 +199,54 @@ class Solution
   end
 
   def part_one!
-    dirs = {}
-    current_dir = ""
-    reading_out = false
-    input.each do |line|
-      if line.start_with? "$"
-        cmnd, args = line.split(" ")[1..]
-        if cmnd == "cd"
-          if args == ".."
-            current_dir = current_dir.split("/")[0..-2].join("/")
-          elsif args == "/"
-            current_dir = "/"
-          else
-            current_dir = current_dir + "/" + args
-          end
-          if !dirs[current_dir]
-            dirs[current_dir] = {
-              files: [],
-              dirs: [],
-              total_size: nil,
-            }
-          end
-        end
-      else
-        if line.start_with? "dir"
-          _, dirname = line.split(" ")
-          dirs[current_dir][:dirs] << current_dir + "/" + dirname
-        else
-          size, _ = line.split(" ")
-          dirs[current_dir][:files] << size.to_i
-        end
-      end
-    end
-
-    dirs.each do |dir|
-      dir[1][:total_size] = get_total_size(dir, dirs)
-    end
-
-    a = dirs.select { |dirname, contents| contents[:total_size] < 100000 }.map { |dirname, content| content[:total_size] }
-    a.sum
-  end
-
-  def get_total_size(dir, dirs)
-    if dir.is_a? Array
-      dir = dir[1]
-    end
-    return dir[:total_size] unless dir[:total_size].nil?
-
-    if dir[:dirs].empty?
-      dir[:total_size] = dir[:files].sum
-      return dir[:files].sum
-    else
-      total = dir[:dirs].map { get_total_size(dirs[_1], dirs) }.sum
-      dir[:total_size] = total + dir[:files].sum
-      return dir[:total_size]
-    end
+    run_all_commands
+    Directory
+      .all
+      .select { _1.total_size <= 100_000 }
+      .map { _1.total_size }
+      .sum
   end
 
   def part_two!
-    dirs = {}
-    current_dir = ""
-    reading_out = false
+    Directory.clear!
+    run_all_commands
+
+    Directory
+      .all
+      .select { _1.total_size >= required_to_free }
+      .sort_by { _1.total_size }
+      .first.total_size
+  end
+
+  private
+
+  def run_all_commands
+    current_dir = Directory.home_dir
     input.each do |line|
-      if line.start_with? "$"
-        cmnd, args = line.split(" ")[1..]
-        if cmnd == "cd"
-          if args == ".."
-            current_dir = current_dir.split("/")[0..-2].join("/")
-          elsif args == "/"
-            current_dir = "/"
+      if line.start_with?("$")
+        cmd, args = line.split(" ")[1..]
+        if cmd == "cd"
+          case args
+          when ".."
+            current_dir = current_dir.parent_dir
+          when "/"
+            current_dir = Directory.home_dir
           else
-            current_dir = current_dir + "/" + args
-          end
-          if !dirs[current_dir]
-            dirs[current_dir] = {
-              files: [],
-              dirs: [],
-              total_size: nil,
-            }
+            current_dir = current_dir.move_into(args)
           end
         end
       else
-        if line.start_with? "dir"
-          _, dirname = line.split(" ")
-          dirs[current_dir][:dirs] << current_dir + "/" + dirname
-        else
-          size, _ = line.split(" ")
-          dirs[current_dir][:files] << size.to_i
-        end
+        current_dir.add_content(line)
       end
     end
+  end
 
-    dirs.each do |dir|
-      dir[1][:total_size] = get_total_size(dir, dirs)
-    end
-
-    a = dirs.map { |dirname, content| content[:total_size] }
-
-    total_used = a.max
-    total = 70000000
-    required = 30000000
-    free_space = total - total_used
-    needed_to_find = required - free_space
-    a = dirs.select { |_, content| content[:total_size] >= needed_to_find }.min_by { |_, content| content[:total_size] }
-    a[1][:total_size]
+  def required_to_free
+    total_space = 70_000_000
+    required_available = 30_000_000
+    total_space_used = Directory.home_dir.total_size
+    current_available = total_space - total_space_used
+    required_available - current_available
   end
 end
 
