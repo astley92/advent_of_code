@@ -153,9 +153,10 @@
 
 SAND_SPAWN = [500,0]
 
+require "set"
+
 def self.parse_input(input)
-  # Parse input
-  res = []
+  res = Set.new
   input.split("\n").each do |line|
     line.split(" -> ").each_cons(2).each do |section|
       start, stop = section.map { _1.split(",").map { |a| a.to_i } }
@@ -184,42 +185,20 @@ def self.parse_input(input)
       end
     end
   end
-  res.uniq
+  res
 end
-
-require "set"
 
 def part_one(input)
   max_y = input.max_by { _1[1] }[1]
-  rocks = input
-  obstacles = Set.new(rocks)
+  obstacles = Set.new(input)
   falling = false
   sand_count = 0
   while !falling
-    current = SAND_SPAWN.dup
-    stuck = false
-    while !stuck
-      if current[1] > max_y
-        falling = true
-        break
-      end
-
-      current_down = [current[0], current[1]+1]
-      current_down_left = [current[0]-1, current[1]+1]
-      current_down_right = [current[0]+1, current[1]+1]
-      if !obstacles.include? current_down
-        current = current_down
-      elsif !obstacles.include? current_down_left
-        current = current_down_left
-      elsif !obstacles.include? current_down_right
-        current = current_down_right
-      else
-        stuck = true
-      end
-    end
+    end_point = drop_sand(obstacles, max_y)
+    obstacles << end_point
+    falling = (end_point[1] > max_y)
     if !falling
       sand_count += 1
-      obstacles << current
     end
   end
   sand_count
@@ -238,29 +217,39 @@ def part_two(input)
   sand_count = 0
   blocked = false
   while !blocked
-    current = SAND_SPAWN.dup
-    stuck = false
-    while !stuck
-      current_down = [current[0], current[1]+1]
-      current_down_left = [current[0]-1, current[1]+1]
-      current_down_right = [current[0]+1, current[1]+1]
-      if !obstacles.include? current_down
-        current = current_down
-      elsif !obstacles.include? current_down_left
-        current = current_down_left
-      elsif !obstacles.include? current_down_right
-        current = current_down_right
-      else
-        stuck = true
-      end
-    end
+    end_point = drop_sand(obstacles)
+    obstacles << end_point
     sand_count += 1
-    obstacles << current
-    if current == SAND_SPAWN
+
+    if end_point == SAND_SPAWN
       blocked = true
     end
   end
   sand_count
+end
+
+def drop_sand(obstacles, max_y = nil)
+  current = SAND_SPAWN.dup
+  stuck = false
+  while !stuck
+    current_down = [current[0], current[1]+1]
+    current_down_left = [current[0]-1, current[1]+1]
+    current_down_right = [current[0]+1, current[1]+1]
+    if !obstacles.include? current_down
+      current = current_down
+    elsif !obstacles.include? current_down_left
+      current = current_down_left
+    elsif !obstacles.include? current_down_right
+      current = current_down_right
+    else
+      stuck = true
+    end
+
+    if max_y && current[1] > max_y
+      return current
+    end
+  end
+  current
 end
 
 input = File.read(__FILE__.gsub("main.rb", "input.txt"))
