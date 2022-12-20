@@ -263,6 +263,10 @@ class Blueprint
     end
     [nil, nil]
   end
+
+  def max_turn_spend_for(type)
+    robot_types.flat_map { _1.costs }.select { _1.type == type }.map { _1.amount }.max
+  end
 end
 
 def self.parse_input(input)
@@ -313,6 +317,8 @@ def part_one(input)
         end
 
         affordable_robots.each do |type|
+          next if robots.select { _1.type == type }.count >= blueprint.max_turn_spend_for(type)
+
           resources_after_this_build = resources.dup
           costs, new_robot = blueprint.build_new_robot(type)
           costs.each do |cost|
@@ -324,9 +330,6 @@ def part_one(input)
       end
 
       paths = new_paths
-      if paths.count > 75000
-        paths = new_paths.uniq.sort_by { calculate_resources(*_1, blueprint.robot_types) }.last(10000)
-      end
     end
     best_path = paths.max_by { |resources, _| (resources["geode"] || 0) }
     quality_levels << (best_path[0]["geode"] || 0) * blueprint.id
@@ -347,26 +350,6 @@ def add_resources(a, b)
     end
   end
   a
-end
-
-def calculate_resources(resources, robots, robot_types)
-  return 2000 * resources["geode"] if resources["geode"]
-  return 1000 if robots.any? { _1.type == "geode" }
-
-  goal_robot = robot_types.detect { _1.type == "geode" }
-  goal_resources = goal_robot.costs
-
-  res = 0
-  goal_resources.each do |resource|
-    resource_diff = resource.amount - (resources[resource.type] || 0)
-    # Take robots into account?
-    if resource_diff <= 0
-      res += 250
-    else
-      res += ((resources[resource.type] || 0) / resource.amount.to_f) * 100
-    end
-  end
-  res
 end
 
 input = File.read(__FILE__.gsub("main.rb", "input.txt"))
