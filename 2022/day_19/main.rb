@@ -246,10 +246,14 @@ class Blueprint
     robot_type
   end
 
-  def build_new_robot(type)
+  def build_new_robot(type, string: false)
     costs = @robot_types.detect { _1.type == type }.costs
     robot = @robot_types.detect { _1.type == type }.build
-    [costs, robot]
+    if string
+      [costs, robot.type]
+    else
+      [costs, robot]
+    end
   end
 
   def all_robot_types
@@ -297,11 +301,11 @@ end
 def part_one(input)
   quality_levels = []
   input.each do |blueprint|
-    puts blueprint.id
     resources = {}
     robots = [blueprint.build_new_robot("ore")[1]]
     paths = [[resources, robots]]
     24.times do |i|
+      puts i
       new_paths = []
 
       while paths.any?
@@ -317,7 +321,7 @@ def part_one(input)
         end
 
         affordable_robots.each do |type|
-          next if robots.select { _1.type == type }.count >= blueprint.max_turn_spend_for(type)
+          next if !(type == "geode") && robots.select { _1.type == type }.count >= blueprint.max_turn_spend_for(type)
 
           resources_after_this_build = resources.dup
           costs, new_robot = blueprint.build_new_robot(type)
@@ -329,7 +333,11 @@ def part_one(input)
         end
       end
 
-      paths = new_paths
+      puts new_paths.count
+      new_paths.map! { |resources, robots| [constrained_resources(resources, blueprint, 24-(i+1)), robots] }
+      paths = new_paths.uniq { |resources, robots| [resources.sort, robots.map(&:type).tally.sort] }
+      puts paths.count
+      puts
     end
     best_path = paths.max_by { |resources, _| (resources["geode"] || 0) }
     quality_levels << (best_path[0]["geode"] || 0) * blueprint.id
@@ -338,7 +346,102 @@ def part_one(input)
 end
 
 def part_two(input)
-  # Solve part two
+  minutes = 32
+  max_geodes = []
+  input[..2].each do |blueprint|
+    resources = {}
+    robots = ["ore"]
+    paths = [serialize([resources, robots])]
+    minutes.times do |i|
+      puts i
+      new_paths = []
+
+      while paths.any?
+        resources, robots = deserialize(paths.pop, blueprint)
+
+        # Collect resources
+        collected_resources = robots.tally
+        new_paths << serialize(
+          [
+            constrained_resources(
+              add_resources(resources.dup, collected_resources),
+              blueprint,
+              minutes-(i+1),
+            ),
+            robots.dup,
+          ],
+        )
+
+        # Find afforable robots before collection
+        affordable_robots = blueprint.all_robot_types.select do |robot_type|
+          blueprint.try_to_build_robot(robot_type, resources) != [nil, nil]
+        end
+
+        affordable_robots.each do |type|
+          next if !(type == "geode") && robots.count(type) >= blueprint.max_turn_spend_for(type)
+
+          resources_after_this_build = resources.dup
+          costs, new_robot = blueprint.build_new_robot(type, string: true)
+          costs.each do |cost|
+            resources_after_this_build[cost.type] -= cost.amount
+          end
+
+          new_paths << serialize(
+            [
+              constrained_resources(
+                add_resources(resources_after_this_build, collected_resources),
+                blueprint,
+                minutes-(i+1),
+              ),
+              robots + [new_robot]
+            ]
+          )
+        end
+      end
+      paths = new_paths.uniq
+    end
+    best_path = paths.max_by { _1.chars.map(&:to_i)[-1] }
+    max_geodes << best_path.chars.map(&:to_i)[-1]
+  end
+  puts max_geodes.inspect
+  max_geodes.reduce(&:*)
+end
+
+def serialize(objects)
+  res = []
+  resources, robots = objects
+  robot_tally = robots.tally
+  resources_types = %w[ore clay obsidian geode]
+  resources_types.each do |type|
+    res << (resources.dig(type) || 0)
+  end
+  resources_types.each do |type|
+    res << (robot_tally.dig(type) || 0)
+  end
+  res
+end
+
+def deserialize(counts, blueprint)
+  resource_counts = counts[...4]
+  robot_counts = counts[4..]
+  robots = []
+  types = %w[ore clay obsidian geode]
+  resources = types.zip(resource_counts).to_h
+  robots = types.zip(robot_counts).reject { _1[1] == 0 }.flat_map { Array.new(_1[1],_1[0]) }
+  [resources, robots]
+end
+
+def constrained_resources(resources, blueprint, turns_left)
+  new_resources = {}
+  resources.each do |type, amount|
+    if type == "geode"
+      new_resources[type] = amount
+    else
+      max_spendable_amount = [blueprint.max_turn_spend_for(type) * turns_left, amount].min
+      new_resources[type] = max_spendable_amount
+    end
+  end
+  new_resources
 end
 
 def add_resources(a, b)
@@ -353,5 +456,5 @@ def add_resources(a, b)
 end
 
 input = File.read(__FILE__.gsub("main.rb", "input.txt"))
-puts "Part One: #{part_one(parse_input(input))}"
+# puts "Part One: #{part_one(parse_input(input))}"
 puts "Part Two: #{part_two(parse_input(input))}"
