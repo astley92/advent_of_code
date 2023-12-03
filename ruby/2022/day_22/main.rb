@@ -1,4 +1,161 @@
-##### Part One Description #####
+require_relative("/Users/blakeastley/Projects/advent_of_code/ruby/runner.rb")
+require("byebug")
+
+runner = Runner.new
+runner.add_test(:part_one, expected: 6032, skip: false, input: <<~MSG)
+        ...#
+        .#..
+        #...
+        ....
+...#.......#
+........#...
+..#....#....
+..........#.
+        ...#....
+        .....#..
+        .#......
+        ......#.
+
+10R5L5R10L4R5L5
+MSG
+
+runner.add_test(:part_two, expected: nil, skip: false, input: <<~MSG)
+MSG
+
+module Solution
+  module_function
+
+  def part_one(raw_input)
+    board, instructions = parse(raw_input)
+    instructions.each do |instruction|
+      if instruction.type == :turn
+        board.turn_player(instruction.value)
+      else
+        board.move_player(instruction.value.to_i)
+      end
+    end
+    row, col, direction = board.player_coords_and_direction
+    (row * 1000) + (col * 4) + direction
+  end
+
+  def part_two(raw_input)
+    parsed_input = parse(raw_input)
+  end
+
+  def parse(input)
+    board, instructions = input.split("\n\n")
+    board = Board.parse(board)
+
+    instructions = instructions.strip
+      .chars
+      .slice_when { |b, a| (b.match?(/\d/) && !a.match?(/\d/)) || (a.match?(/\d/) && !b.match?(/\d/))}
+      .map { _1.join }
+      .map { Instruction.parse(_1) }
+
+    [board, instructions]
+  end
+
+  class Board
+    DIRS = [
+      [1,0],
+      [0,1],
+      [-1,0],
+      [0,-1],
+    ]
+    def self.parse(string)
+      graph = []
+      lines = string
+        .split("\n")
+      max_width = lines.map { _1.length }.max
+      lines
+        .map { _1.gsub(" ", "o") }
+        .map { _1.ljust(max_width, "o") }
+        .each { graph << _1.chars }
+
+      new(graph: graph, width: max_width, height: lines.count)
+    end
+
+    attr_reader :graph, :player, :player_direction, :width, :height
+    def initialize(graph:, width:, height:)
+      @graph = graph
+      @player = determine_player_start
+      @player_direction = [1, 0]
+      @width = width
+      @height = height
+    end
+
+    def determine_player_start
+      graph.first.each_with_index do |char, i|
+        if char == "."
+          return [i, 0]
+        end
+      end
+    end
+
+    def move_player(amount)
+      start_pos = player
+      amount.times do
+        next_position = wrap([player[0] + player_direction[0], player[1] + player_direction[1]])
+        next_char = get_char_at_position(next_position)
+        case next_char
+        when "."
+          @player = next_position
+        when "#"
+          break
+        else
+          raise "Uh Oh: #{char.inspect}"
+        end
+      end
+    end
+
+    def turn_player(direction_to_turn)
+      dir = direction_to_turn == "L" ? -1 : 1
+      current = DIRS.index(player_direction)
+      @player_direction = DIRS[(current+dir) % 4]
+    end
+
+    def wrap(position)
+      if position[0] >= width
+        return wrap([0, position[1]])
+      elsif position[0] < 0
+        return wrap([width-1, position[1]])
+      elsif position[1] >= height
+        return wrap([position[0], 0])
+      elsif position[1] < 0
+        return wrap([position[0], height-1])
+      end
+
+      char = get_char_at_position(position)
+      return position if %w[. #].include?(char)
+
+      next_position = [position[0] + player_direction[0], position[1] + player_direction[1]]
+      return wrap(next_position)
+    end
+
+    def get_char_at_position(position)
+      @graph[position[1]][position[0]]
+    end
+
+    def player_coords_and_direction
+      [player[1]+1, player[0]+1, DIRS.index(player_direction)]
+    end
+  end
+
+  class Instruction
+    def self.parse(string)
+      type = string.match?(/\d+/) ? :step_count : :turn
+      new(type: type, value: string)
+    end
+
+    attr_reader :type, :value
+    def initialize(type:, value:)
+      @type = type
+      @value = value
+    end
+  end
+end
+
+# Part One Description
 # --- Day 22: Monkey Map ---
 # The monkeys take you on a surprisingly easy trail through the jungle. They're
 # even going in roughly the right direction according to your handheld device's
@@ -107,219 +264,7 @@
 # facing is 0. So, the final password is 1000 * 6 + 4 * 8 + 0: 6032.
 #
 # Follow the path given in the monkeys' notes. What is the final password?
-require "byebug"
-
-class Grid
-  def self.pad_strings(strings)
-    max = strings.max_by { _1.count }.count
-    strings.each do |s|
-      while s.count < max
-        s << " "
-      end
-    end
-  end
-
-  def self.from_string(string)
-    new(
-      rows: pad_strings(string.split("\n").map(&:chars)),
-    )
-  end
-
-  attr_reader :rows
-  def initialize(rows:)
-    @rows = rows
-  end
-
-  def start_pos
-    @rows.first.each_with_index do |e, x|
-      if e == "."
-        return [x, 0]
-      end
-    end
-  end
-
-  def is_wall?(coords)
-    @rows[coords[1]][coords[0]] == "#"
-  end
-
-  def wrap(pos, direction)
-    x, y = pos
-    if ["E", "W"].include? direction
-      if x >= x_range_for(y).last
-        x = x_range_for(y).first
-      elsif x < x_range_for(y).first
-        x = x_range_for(y).last
-      end
-    else
-      if y >= y_range_for(x).last
-        y = y_range_for(x).first
-      elsif y < y_range_for(x).first
-        y = y_range_for(x).last
-      end
-    end
-    [x, y]
-  end
-
-  private
-
-  def x_range_for(y)
-    min = nil
-    max = nil
-    started = false
-
-    @rows[y].each_with_index do |char, index|
-      if [".", "#"].include?(char)
-        if !started
-          min = index
-          started = true
-        end
-      else
-        if started
-          max = index
-          started = false
-        end
-      end
-    end
-    if max.nil?
-      max = @rows[y].count-1
-    end
-    (min..max)
-  end
-
-  def y_range_for(x)
-    min = nil
-    max = nil
-    started = false
-    @rows.transpose[x].each_with_index do |char, index|
-      if [".", "#"].include?(char)
-        if !started
-          min = index
-          started = true
-        end
-      else
-        if started
-          max = index
-          started = false
-        end
-      end
-    end
-    if max.nil?
-      max = @rows.transpose[x].count-1
-    end
-    (min..max)
-  end
-end
-
-class Movements
-  def self.from_string(string)
-    movements = []
-    string.strip.split(/(L|R)/).each do |m|
-      if ["R", "L"].include? m
-        movements << m
-      else
-        movements << m.to_i
-      end
-    end
-    new(movements: movements)
-  end
-
-  def initialize(movements:)
-    @movements = movements
-  end
-
-  def each
-    @movements.each { yield(_1) }
-  end
-end
-
-class Position
-  DIRECTIONS = {
-    "E" => {
-      dir_vec: [1, 0],
-      left: "N",
-      right: "S",
-    },
-    "W" => {
-      dir_vec: [-1, 0],
-      left: "S",
-      right: "N"
-    },
-    "N" => {
-      dir_vec: [0, -1],
-      left: "W",
-      right: "E"
-    },
-    "S" => {
-      dir_vec: [0, 1],
-      left: "E",
-      right: "W",
-    },
-  }
-
-  attr_reader :direction
-  def initialize(x, y)
-    @x = x
-    @y = y
-    @direction = "E"
-  end
-
-  def forward_one
-    dir_vec = DIRECTIONS.dig(@direction, :dir_vec)
-    [@x + dir_vec[0], @y + dir_vec[1]]
-  end
-
-  def update_pos(coords)
-    @x = coords[0]
-    @y = coords[1]
-  end
-
-  def rotate(dir)
-    direction_key = dir == "L" ? :left : :right
-    @direction = DIRECTIONS.dig(@direction, direction_key)
-  end
-
-  def pos
-    [@x, @y]
-  end
-end
-
-def self.parse_input(input)
-  grid_strings, movement_string = input.split("\n\n")
-  grid = Grid.from_string(grid_strings)
-  movements = Movements.from_string(movement_string)
-  [grid, movements]
-end
-
-def part_one(input)
-  grid, movements = input
-  current = Position.new(*grid.start_pos)
-  movements.each do |move|
-    if move.is_a?(Integer)
-      move.times do
-        puts current.pos.inspect + " " + current.direction
-        forward_one = grid.wrap(current.forward_one, current.direction)
-        if grid.is_wall?(forward_one)
-          break
-        end
-        current.update_pos(forward_one)
-      end
-    else
-      current.rotate(move)
-    end
-  end
-  row = current.pos[1] + 1
-  col = current.pos[0] + 1
-  dir_scores = {"E" => 0, "S" => 1, "W" => 2, "N" => 3}
-  facing = dir_scores.fetch(current.direction)
-
-
-  (1000 * row) + (4 * col) + (facing)
-end
-
-def part_two(input)
-  # Solve part two
-end
 
 input = File.read(__FILE__.gsub("main.rb", "input.txt"))
-puts "Part One: #{part_one(parse_input(input))}"
-puts "Part Two: #{part_two(parse_input(input))}"
+
+runner.run!(input)
