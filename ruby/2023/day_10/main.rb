@@ -10,7 +10,17 @@ SJ.L7
 LJ...
 MSG
 
-runner.add_test(:part_two, expected: nil, skip: false, input: <<~MSG)
+runner.add_test(:part_two, expected: 10, skip: false, input: <<~MSG)
+FF7FSF7F7F7F7F7F---7
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJIF7FJ-
+L---JF-JLJIIIIFJLJJ7
+|F|F-JF---7IIIL7L|7|
+|FFJF7L7F-JF7IIL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L
 MSG
 
 module Solution
@@ -34,8 +44,61 @@ module Solution
 
   def part_one(raw_input)
     grid = parse(raw_input)
+    pipe_path = walk_path(grid)
+    pipe_path.count / 2
+  end
+
+  def part_two(raw_input)
+    grid = parse(raw_input)
+    width = grid.first.count
+    height = grid.count
+    pipe_path = walk_path(grid)
+    trapped_count = 0
+    grid.each_with_index do |row, y|
+      row.each_with_index do |char, x|
+        next unless pipe_path[[x, y]].nil?
+
+        if is_trapped?([x, y], grid, pipe_path, width, height)
+          trapped_count += 1
+        end
+      end
+    end
+
+    trapped_count
+  end
+
+  def is_trapped?(position, grid, pipe_path, width, height)
+    right_score = build_coord_list(position, [1,0], width, height).map do |pos|
+      pipe_path.fetch(pos, "")
+    end.join.scan(/(\||L-*7|F-*J)/).count
+
+    left_score = build_coord_list(position, [-1,0], width, height).map do |pos|
+      pipe_path.fetch(pos, "")
+    end.join.scan(/(\||7-*L|J-*F)/).count
+
+    north_score = build_coord_list(position, [0,-1], width, height).map do |pos|
+      pipe_path.fetch(pos, "")
+    end.join.scan(/(-|J\|*F|L\|*7)/).count
+
+    south_score = build_coord_list(position, [0,1], width, height).map do |pos|
+      pipe_path.fetch(pos, "")
+    end.join.scan(/(-|F\|*J|7\|*L)/).count
+
+    [right_score, left_score, north_score, south_score].all?(&:odd?)
+  end
+
+  def build_coord_list(start_position, direction, width, height)
+    positions = []
+    current_position = start_position
+    while current_position[0] >= 0 && current_position[0] < width && current_position[1] >= 0 && current_position[1] < height
+      positions << current_position
+      current_position = current_position.zip(direction).map(&:sum)
+    end
+    positions
+  end
+
+  def walk_path(grid)
     position = nil
-    # find start
     grid.each_with_index do |row, y|
       row.each_with_index do |char, x|
         if char == "S"
@@ -47,9 +110,17 @@ module Solution
     end
 
     # Walk the path
-    path = [position]
+    first_join_char = nil
+    second_join_char = nil
+    start_pos = position
+    path = [[position, "S"]]
+    path_map = {}
+    path_map[position] = "S"
     while true
-      return path.count / 2 if path.count > 1 && path[0] == path[-1]
+      if path.count > 1 && path[0] == path[-1]
+        second_join_char = path[-2][1]
+        break
+      end
 
       current_char = grid[position[1]][position[0]]
       if current_char == "S"
@@ -63,20 +134,33 @@ module Solution
           next_char = grid[next_pos[1]][next_pos[0]]
           next unless possible_pipes.include?(next_char)
 
+          first_join_char = next_char
           position = next_pos
         end
       else
-        from_dir = path[-1].zip(path[-2]).map { _1[1] - _1[0] }
+        from_dir = path[-1][0].zip(path[-2][0]).map { _1[1] - _1[0] }
         next_position_offset = PIPE_TO_AND_FROM_MAP[current_char]
           .detect { _1 != from_dir }
         position = position.zip(next_position_offset).map(&:sum)
       end
-      path << position
+      path << [position, grid[position[1]][position[0]]]
+      path_map[position] = grid[position[1]][position[0]]
     end
+    path_map[start_pos] = determine_join_char(first_join_char, second_join_char)
+    path_map
   end
 
-  def part_two(raw_input)
-    parsed_input = parse(raw_input)
+  def determine_join_char(*chars)
+    case chars.sort.join
+    when "J|"
+      "F"
+    when "7L"
+      "-"
+    when "F|"
+      "L"
+    else
+      raise "Don't know how to join #{chars.inspect} #{chars.sort.join}"
+    end
   end
 
   def parse(input)
