@@ -1,4 +1,4 @@
-require("set")
+require_relative("../utils.rb")
 
 input = "....#.....
 .........#

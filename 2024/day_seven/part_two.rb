@@ -1,3 +1,5 @@
+require_relative("../utils.rb")
+
 input = "190: 10 19
 3267: 81 40 27
 83: 17 5
@@ -34,26 +36,6 @@ def values_can_eq_num?(num, values, gen)
   end
 
   return false
-end
-
-class OpGenerator
-  def initialize(symbols:)
-    @symbols = symbols
-    @count_ops_map = { 1 => symbols.map { [_1] } }
-  end
-
-  def ops_for(count)
-    return @count_ops_map[count] if @count_ops_map[count]
-
-    prev = ops_for(count-1)
-    current = []
-    prev.each do |op|
-      @symbols.each do |o|
-        current << op + [o]
-      end
-    end
-    @count_ops_map[count] = current
-  end
 end
 
 lines = input.split("\n")

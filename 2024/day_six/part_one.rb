@@ -1,4 +1,5 @@
 require("set")
+require_relative("../utils.rb")
 
 input = "....#.....
 .........#
@@ -16,22 +17,6 @@ grid = input.split("\n").map { _1.split("") }
 start = nil
 width = grid.first.count
 height = grid.count
-
-class Vec2
-  attr_reader :x, :y
-  def initialize(x, y)
-    @x = x
-    @y = y
-  end
-
-  def add(other)
-    self.class.new(other.x + x, other.y + y)
-  end
-
-  def to_a
-    [x, y]
-  end
-end
 
 DIRS = [
   Vec2.new(0, -1),
