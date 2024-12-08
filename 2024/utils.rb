@@ -1,6 +1,41 @@
 require("set")
 require("byebug")
 
+class Grid
+  def self.from_string(str)
+    new(str.split("\n").map { _1.split("") })
+  end
+
+  def initialize(state)
+    @state = state
+    @width = @state.first.count
+    @height = @state.count
+  end
+
+  def each_with_pos
+    @state.each_with_index do |line, y|
+      line.each_with_index do |c, x|
+        yield(c, Vec2.new(x, y))
+      end
+    end
+  end
+
+  def within_bounds?(pos)
+    pos.x >= 0 &&
+      pos.x < @width &&
+      pos.y >= 0 &&
+      pos.y < @height
+  end
+
+  def replace(pos, c)
+    @state[pos.y][pos.x] = c
+  end
+
+  def pretty_s
+    @state.map { _1.join }.join("\n")
+  end
+end
+
 class OpGenerator
   def initialize(symbols:)
     @symbols = symbols
@@ -30,6 +65,22 @@ class Vec2
 
   def add(other)
     self.class.new(other.x + x, other.y + y)
+  end
+
+  def +(other)
+    self.class.new(other.x + x, other.y + y)
+  end
+
+  def -(other)
+    self.class.new(other.x - x, other.y - y)
+  end
+
+  def ==(other)
+    @x == other.x && @y == other.y
+  end
+
+  def reflection
+    self.class.new(-x, -y)
   end
 
   def to_a
