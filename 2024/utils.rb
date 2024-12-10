@@ -27,6 +27,12 @@ class Grid
       pos.y < @height
   end
 
+  def at(pos)
+    return nil unless within_bounds?(pos)
+
+    @state[pos.y][pos.x]
+  end
+
   def replace(pos, c)
     @state[pos.y][pos.x] = c
   end
