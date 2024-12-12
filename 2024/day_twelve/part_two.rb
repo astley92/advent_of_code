@@ -5,7 +5,30 @@ BBCD
 BBCC
 EEEC"
 
-# input = File.read("2024/day_twelve/input.txt")
+input = "EEEEE
+EXXXX
+EEEEE
+EXXXX
+EEEEE"
+
+input = "RRRRIICCFF
+RRRRIICCCF
+VVRRRCCFFF
+VVRCCCJFFF
+VVVVCJJCFE
+VVIVCCJJEE
+VVIIICJJEE
+MIIIIIJJEE
+MIIISIJEEE
+MMMISSJEEE"
+
+input = "AAAAAA
+AAABBA
+AAABBA
+ABBAAA
+ABBAAA
+AAAAAA"
+input = File.read("2024/day_twelve/input.txt")
 
 DIRS = [
   Vec2.new(0, -1),
@@ -61,8 +84,33 @@ end
 
 price = 0
 nodes.each do |node_group|
+  horizontal_sides = []
+  vertical_sides = []
   node_group.each do |node|
+    DIRS.each do |dir|
+      neighbour = node.pos + dir
+      next if node.edges.any? { _1.pos == neighbour }
+
+      if dir.x == 1
+        vertical_sides << [neighbour, dir]
+      elsif dir.x == -1
+        vertical_sides << [node.pos, dir]
+      elsif dir.y == 1
+        horizontal_sides << [neighbour, dir]
+      else
+        horizontal_sides << [node.pos, dir]
+      end
+    end
   end
+  side_count = 0
+
+  vertical_sides.map! { |pos, dir| pos.y + pos.x * 10000 * dir.x }
+  side_count += vertical_sides.sort.slice_when { |a, b| (b - a).abs > 1 }.count
+  horizontal_sides.map! { |pos, dir| pos.x + pos.y * 10000 * dir.y }
+  side_count += horizontal_sides.sort.slice_when { |a, b| (b - a).abs > 1 }.count
+
+  puts "#{node_group.count} * #{side_count} = #{side_count * node_group.count}"
+  price += node_group.count * side_count
 end
 
 puts price
