@@ -18,32 +18,34 @@ Prize: X=18641, Y=10279"
 input = File.read("2024/day_thirteen/input.txt")
 
 configuration_strs = input.split("\n\n").map { _1.split("\n") }
-A_COST = 3
-B_COST = 1
 
 cost = 0
-
 configuration_strs.each do |configuation_str|
   a_delta = Vec2.new(*configuation_str[0].scan(/\d+/)[..1].map(&:to_i))
   b_delta = Vec2.new(*configuation_str[1].scan(/\d+/)[..1].map(&:to_i))
-  prize_location = Vec2.new(*configuation_str[2].scan(/\d+/)[..1].map(&:to_i))
-  prize_location += Vec2.new(10000000000000, 10000000000000)
-  lowest = Float::INFINITY
-
+  prize = Vec2.new(*configuation_str[2].scan(/\d+/)[..1].map(&:to_i))
+  prize += Vec2.new(10000000000000, 10000000000000)
   # We want to know when a_press * a_delta + b_press * b_delta == prize
-  # Looking like a system of linear equations math problem
-  # CBF on a Friday afternoon
-  # TODO: Come back and do this
-  (1..101).each do |a_press|
-    (1..101).each do |b_press|
-      if (a_delta * a_press + b_delta * b_press) == prize_location
-        this_cost = a_press * 3 + b_press
-        lowest = this_cost if this_cost < lowest
-      end
-    end
-  end
+  # ax * aP + bx * bP = px
+  # ay * aP + by * bP = py
+  # ---------------------- * by bx and by respectively to make bP term the same
+  # axbyaP + bybxbP = pxby
+  # aybxaP + bybxbP = pybx
+  # ---------------------- subtract the two equations
+  # axbyaP - aybxaP = pxby - pybx
+  # ---------------------- isolate aP
+  # aP * (axby - aybx) = pxby - pybx
+  # ---------------------- solve for aP
+  # aP = pxby - pybx / axby - aybx
+  # Bp = the remainder of length to go after a_presses of a
 
-  cost += lowest if lowest != Float::INFINITY
+  a_presses = (prize.x*b_delta.y - prize.y*b_delta.x) / (a_delta.x*b_delta.y - a_delta.y*b_delta.x)
+  b_presses = (prize.x - a_delta.x*a_presses) / b_delta.x
+
+  if (a_presses * a_delta.x + b_presses * b_delta.x) == prize.x &&
+    (a_presses * a_delta.y + b_presses * b_delta.y) == prize.y
+    cost += a_presses * 3 + b_presses
+  end
 end
 
 puts cost
