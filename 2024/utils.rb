@@ -1,5 +1,6 @@
 require("set")
 require("byebug")
+require("bigdecimal")
 
 class Grid
   def self.from_string(str)
@@ -63,7 +64,7 @@ class OpGenerator
 end
 
 class Vec2
-  attr_reader :x, :y
+  attr_accessor :x, :y
   def initialize(x, y)
     @x = x
     @y = y
@@ -78,7 +79,11 @@ class Vec2
   end
 
   def -(other)
-    self.class.new(other.x - x, other.y - y)
+    self.class.new(x - other.x, y - other.y)
+  end
+
+  def *(n)
+    self.class.new(x * n, y * n)
   end
 
   def ==(other)
@@ -94,3 +99,13 @@ class Vec2
   end
 end
 
+class Line
+  def initialize(p1, p2)
+    @p1 = p1
+    @p2 = p2
+  end
+
+  def slope
+    BigDecimal(@p2.y - @p1.y) / BigDecimal(@p2.x - @p1.x)
+  end
+end
