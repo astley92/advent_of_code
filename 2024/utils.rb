@@ -65,6 +65,10 @@ end
 
 class Vec2
   attr_accessor :x, :y
+  def self.zero
+    new(0,0)
+  end
+
   def initialize(x, y)
     @x = x
     @y = y

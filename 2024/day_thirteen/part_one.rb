@@ -26,35 +26,20 @@ cost = 0
 configuration_strs.each do |configuation_str|
   a_delta = Vec2.new(*configuation_str[0].scan(/\d+/)[..1].map(&:to_i))
   b_delta = Vec2.new(*configuation_str[1].scan(/\d+/)[..1].map(&:to_i))
-  target = Vec2.new(*configuation_str[2].scan(/\d+/)[..1].map(&:to_i))
+  prize_location = Vec2.new(*configuation_str[2].scan(/\d+/)[..1].map(&:to_i))
+  lowest = Float::INFINITY
 
-  hits = [0, 0]
-  pos = Vec2.new(0, 0)
-  stack = [[pos, 0, 0, 0]]
-  possibles = []
-  seen = Set.new
-  while stack.any?
-    current_pos, current_cost, a_hits, b_hits = stack.shift
-    next if seen.include?([current_pos.to_a, current_cost, a_hits, b_hits])
-
-    seen << [current_pos.to_a, current_cost, a_hits, b_hits]
-    if current_pos == target
-      possibles << current_cost
-      next
-    end
-
-    next if current_pos.x > target.x
-    next if current_pos.y > target.y
-
-    if a_hits <= 100
-      stack << [current_pos + a_delta, current_cost + A_COST, a_hits + 1, b_hits]
-    end
-    if b_hits <= 100
-      stack << [current_pos + b_delta, current_cost + B_COST, a_hits, b_hits + 1]
+  (1..101).each do |a_press|
+    (1..101).each do |b_press|
+      if (a_delta * a_press + b_delta * b_press) == prize_location
+        this_cost = a_press * 3 + b_press
+        lowest = this_cost if this_cost < lowest
+      end
     end
   end
 
-  cost += possibles.min if possibles.count > 0
+  cost += lowest if lowest != Float::INFINITY
 end
 
 puts cost
+
