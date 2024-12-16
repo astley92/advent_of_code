@@ -41,6 +41,12 @@ class Grid
   def pretty_s
     @state.map { _1.join }.join("\n")
   end
+  def width
+    @state.first.count
+  end
+  def height
+    @state.count
+  end
 end
 
 class OpGenerator
