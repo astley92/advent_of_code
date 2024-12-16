@@ -2,6 +2,7 @@ require("set")
 require("byebug")
 require("bigdecimal")
 
+
 class Grid
   def self.from_string(str)
     new(str.split("\n").map { _1.split("") })
@@ -41,11 +42,21 @@ class Grid
   def pretty_s
     @state.map { _1.join }.join("\n")
   end
+
   def width
     @state.first.count
   end
+
   def height
     @state.count
+  end
+
+  def positions_for(c)
+    res = []
+    each_with_pos do |oc, pos|
+      res << pos if c == oc
+    end
+    res
   end
 end
 
@@ -119,3 +130,10 @@ class Line
     BigDecimal(@p2.y - @p1.y) / BigDecimal(@p2.x - @p1.x)
   end
 end
+
+FOUR_DIRS = [
+  Vec2.new(1, 0),
+  Vec2.new(-1, 0),
+  Vec2.new(0, 1),
+  Vec2.new(0, -1),
+]
