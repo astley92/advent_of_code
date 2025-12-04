@@ -1,0 +1,15 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    byebug (12.0.0)
+    zeitwerk (2.7.3)
+
+PLATFORMS
+  arm64-darwin-25
+
+DEPENDENCIES
+  byebug
+  zeitwerk
+
+BUNDLED WITH
+   2.4.19

@@ -1,3 +1,6 @@
-require("byebug")
+require("bundler")
+Bundler.require(:default)
 
-Dir.glob("lib/**/*.rb").each { require_relative(_1) }
+loader = Zeitwerk::Loader.new
+loader.push_dir("lib")
+loader.setup 
