@@ -1,6 +1,6 @@
 require_relative("../boot.rb")
 
-solution = Solution.new(day: 2, year: 2025)
+solution = Solution.new(day: 4, year: 2025)
 
 solution.add_input(File.read(File.join(__dir__, "input.txt")))
 solution.add_input(<<~TXT, id: "test_input")
@@ -28,7 +28,7 @@ def find_moveable_rolls(grid)
       next unless cell == PAPER_SYMBOL
 
       current = Vec2.new(x, y)
-      rolls = GridHelper::DIRS[8].select do |dir|
+      rolls = Grid::DIRS[8].select do |dir|
         neighbour = current + dir
         if neighbour.x < 0 || neighbour.x >= row.length || neighbour.y < 0 || neighbour.y >= grid.length
           false
@@ -41,7 +41,7 @@ def find_moveable_rolls(grid)
       roll_positions += [current] if rolls.count < 4
     end
   end
-  roll_positions 
+  roll_positions
 end
 
 solution.add_solver(part: 1) do |input|
