@@ -30,7 +30,7 @@ class Solution
       input = @inputs[test.input_id]
       raise ArgumentError, "Input with id #{test.input_id.inspect} can not be found" unless input
 
-      result = @solvers[test.part].call(input.copy)
+      result = @solvers[test.part].call(input.copy, true)
       test_pass = result == test.expected_answer
 
       if test_pass
@@ -47,7 +47,7 @@ class Solution
       input = @inputs["default"]
       raise ArgumentError, "Input with id #{test.input_id.inspect} can not be found" unless input
 
-      result = @solvers[part].call(input.copy)
+      result = @solvers[part].call(input.copy, false)
       puts "Answer: #{result}"
     end
   end
