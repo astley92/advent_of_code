@@ -26,18 +26,20 @@ class Solution
     puts "### AOC #{@year} #{@day} ###"
     puts "### Running tests"
 
-    @tests.each do |test|
-      input = @inputs[test.input_id]
-      raise ArgumentError, "Input with id #{test.input_id.inspect} can not be found" unless input
+    unless skip_tests
+      @tests.each do |test|
+        input = @inputs[test.input_id]
+        raise ArgumentError, "Input with id #{test.input_id.inspect} can not be found" unless input
 
-      result = @solvers[test.part].call(input.copy, true)
-      test_pass = result == test.expected_answer
+        result = @solvers[test.part].call(input.copy, true)
+        test_pass = result == test.expected_answer
 
-      if test_pass
-        puts "\033[32mPass\033[0m"
-      else
-        puts "\033[31mFail: expected #{result} to eq #{test.expected_answer}\033[0m"
-        exit(1)
+        if test_pass
+          puts "\033[32mPass\033[0m"
+        else
+          puts "\033[31mFail: expected #{result} to eq #{test.expected_answer}\033[0m"
+          exit(1)
+        end
       end
     end
 

@@ -9,6 +9,12 @@ class Grid
       Vec2.new(0, -1),
       Vec2.new(1, 0),
       Vec2.new(-1, 0),
+    ],
+    4 => [
+      Vec2.new(0, 1),
+      Vec2.new(0, -1),
+      Vec2.new(1, 0),
+      Vec2.new(-1, 0),
     ]
   }
 
@@ -16,6 +22,18 @@ class Grid
 
   def self.parse(str, row_delim="\n", cell_delim="")
     new(str.split(row_delim).map { _1.split(cell_delim) } )
+  end
+
+  def self.empty(width, height, fill: 0)
+    data = []
+    height.times do |i|
+      row = []
+      width.times do
+        row << fill
+      end
+      data << row
+    end
+    new(data)
   end
 
   def coords_of(c)
@@ -38,18 +56,19 @@ class Grid
     @data.map { _1.join }.join("\n")
   end
 
-  private
-  def initialize(data)
-    @data = data
-    @height = data.count
-    @width = data.first.count
-  end
-
   def each_cell_with_indices
     @data.each.with_index do |row, y|
       row.each.with_index do |cell, x|
         yield(cell, y, x)
       end
     end
+  end
+
+  private
+
+  def initialize(data)
+    @data = data
+    @height = data.count
+    @width = data.first.count
   end
 end
