@@ -118,7 +118,7 @@ solution.add_solver(part: 2) do |input, is_test| positions = input.split("\n").m
   end
 
   gc.draw(imgl)
-  imgl.write("test-#{is_test}.png")
+  imgl.write("day9-#{is_test}.png")
 
   result
 end
